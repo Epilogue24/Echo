@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <!-- ... (头部 meta 信息保持不变) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus.ai</title>
+    <style>
+        /* ... (保留之前的 Root 和其他 CSS 样式，仅修改以下播放器控制相关的 CSS) ... */
+
+        :root {
+            --bg-dark: #050507;
+            --bg-secondary: #0f1016;
+            --text-main: #ffffff;
+
+            --text-sub: #8a8f98;
+            --accent-primary: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.5);
+            --theme-color: #6366f1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 把之前的动画和Hero/Config样式保留...... (为了节省篇幅，此处省略未修改的 CSS) */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes flowGradient {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        #hero-section {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 300;
+            background: radial-gradient(circle at 50% 120%, #1e1e2e 0%, var(--bg-dark) 80%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.6s;
+            text-align: center;
+        }
+
+        #hero-section.slide-up {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .hero-logo {
+            font-size: 5rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #fff, #818cf8, #c084fc);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: flowGradient 5s ease infinite;
+        }
+
+        .hero-slogan {
+            font-size: 1.2rem;
+            font-weight: 300;
+            color: var(--text-sub);
+            margin-bottom: 4rem;
+            letter-spacing: 2px;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 0.5s;
+        }
+
+        .explore-btn {
+            padding: 18px 48px;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .explore-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px var(--accent-glow);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        #config-section {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 200;
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease, transform 0.8s ease;
+            transform: scale(0.95);
+        }
+
+        #config-section.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+        }
+
+        #config-section.slide-away {
+            opacity: 0;
+            transform: scale(1.1);
+            pointer-events: none;
+        }
+
+        .step-wrapper {
+            width: 90%;
+            max-width: 900px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .step-title {
+            font-size: 1.5rem;
+            color: var(--text-sub);
+            margin-bottom: 25px;
+            font-weight: 300;
+        }
+
+        .card-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .option-card {
+            background: #1a1c24;
+            border: 1px solid #2a2d3a;
+            width: 160px;
+            height: 100px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card:hover {
+            background: #242733;
+            transform: translateY(-5px);
+        }
+
+        .option-card.selected {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--theme-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .option-card.selected i {
+            color: var(--theme-color);
+            transform: scale(1.2);
+        }
+
+        .card-icon {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            transition: transform 0.3s;
+        }
+
+        .card-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        #start-generation-btn {
+            margin-top: 20px;
+            padding: 16px 60px;
+            border-radius: 30px;
+            background: var(--theme-color);
+            color: white;
+            font-weight: 600;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s;
+        }
+
+        #start-generation-btn.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #start-generation-btn:hover {
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+        }
+
+        #player-interface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            background: var(--bg-dark);
+            transition: opacity 1s ease 0.5s;
+        }
+
+        #player-interface.active {
+            opacity: 1;
+        }
+
+        .player-header {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mini-logo {
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .reset-btn {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            cursor: pointer;
+            border-bottom: 1px solid transparent;
+        }
+
+        .reset-btn:hover {
+            color: white;
+            border-bottom-color: white;
+        }
+
+        .visualizer-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #breathing-core {
+            width: 250px;
+            height: 250px;
+            border-radius: 50%;
+            background: radial-gradient(closest-side, var(--theme-color), transparent);
+            opacity: 0;
+            filter: blur(40px);
+            will-change: transform, opacity;
+        }
+
+        .controls-dashboard {
+            background: rgba(20, 20, 25, 0.85);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 30px 40px 40px 40px;
+            border-radius: 30px 30px 0 0;
+            animation: slideUpPanel 0.8s ease-out;
+        }
+
+        @keyframes slideUpPanel {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .track-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .track-info h3 {
+            font-weight: 500;
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+
+        /* ==================== 
+           [修改重点] 播放控件样式更新 
+           ==================== */
+        .play-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+            /* 增加间距，更大气 */
+            margin-bottom: 25px;
+        }
+
+        /* 侧边按钮 (上一首/下一首) */
+        .side-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9ca3af;
+            /* 灰色，对应图2 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 10px;
+            border-radius: 50%;
+        }
+
+        .side-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .side-btn:active {
+            transform: scale(0.9);
+        }
+
+        .side-btn svg {
+            width: 32px;
+            /* 图标调大一点，清晰 */
+            height: 32px;
+            fill: currentColor;
+            display: block;
+        }
+
+        /* 主播放按钮 */
+        .play-btn-main {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: white;
+            color: black;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.1);
+        }
+
+        .play-btn-main:active {
+            transform: scale(0.95);
+        }
+
+        .play-btn-main svg {
+            width: 30px;
+            height: 30px;
+            fill: black;
+            /* 如果是播放图标，微调位置让视觉居中 */
+            margin-left: 2px;
+        }
+
+        .play-btn-main.is-playing svg {
+            margin-left: 0;
+            /* 暂停图标不需要偏移 */
+        }
+
+        /* ==================== */
+
+        .seek-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: white;
+            margin-top: -5px;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .fx-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 20px;
+        }
+
+        .fx-title {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .eq-grid {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+        }
+
+        .eq-slider-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .vertical-range {
+            -webkit-appearance: slider-vertical;
+            width: 6px;
+            height: 50px;
+            background: transparent;
+        }
+
+        .speed-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .toggle-label {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--text-sub);
+        }
+
+        .toggle-label input:checked+span {
+            color: var(--theme-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 1. 大气层 Hero Section -->
+    <section id="hero-section">
+        <h1 class="hero-logo">Focus.ai</h1>
+        <p class="hero-slogan">更适合ADHD的AI音乐生成大模型</p>
+        <button class="explore-btn" onclick="enterApp()">开始探索</button>
+    </section>
+
+    <!-- 2. 定制层 Config Section -->
+    <section id="config-section">
+        <div class="step-wrapper">
+            <div class="step-title">STEP 1: 选择你的当前状态</div>
+            <div class="card-container" id="scene-cards">
+                <div class="option-card" onclick="selectScene('work', '#6366f1', this)">
+                    <span class="card-icon">⚡</span>
+                    <span class="card-text">专注</span>
+                </div>
+                <div class="option-card" onclick="selectScene('study', '#10b981', this)">
+                    <span class="card-icon">📖</span>
+                    <span class="card-text">创作</span>
+                </div>
+                <div class="option-card" onclick="selectScene('meditate', '#8b5cf6', this)">
+                    <span class="card-icon">🧘</span>
+                    <span class="card-text">冥想</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-wrapper" style="margin-top: 8px;">
+            <div class="step-title">STEP 2: 定义听觉纹理</div>
+            <div class="card-container" id="style-cards">
+                <div class="option-card" onclick="selectStyle('chill', this)">
+                    <span class="card-icon">🪐</span>
+                    <span class="card-text">Chill</span>
+                </div>
+                <div class="option-card" onclick="selectStyle('lofi', this)">
+                    <span class="card-icon">📼</span>
+                    <span class="card-text">Lofi</span>
+                </div>
+                <div class="option-card" onclick="selectStyle('city pop', this)">
+                    <span class="card-icon">🎹</span>
+                    <span class="card-text">City pop</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="start-generation-btn" onclick="generateAndPlay()">生成专注音频流</button>
+    </section>
+
+    <!-- 3. 核心层 Player UI -->
+    <section id="player-interface">
+        <div class="player-header">
+            <div class="mini-logo">Focus.ai</div>
+            <div class="reset-btn" onclick="location.reload()">重新定制</div>
+        </div>
+
+        <div class="visualizer-container">
+            <div id="breathing-core"></div>
+        </div>
+
+        <div class="controls-dashboard">
+            <div class="track-info">
+                <h3 id="song-title">正在生成 AI 序列...</h3>
+            </div>
+
+            <div class="seek-wrapper">
+                <span id="time-curr">00:00</span>
+                <input type="range" id="seek-bar" value="0" step="0.1" oninput="userSeek(this.value)">
+                <span id="time-dur">00:00</span>
+            </div>
+
+            <!-- [关键修改] 使用 SVG 图标的控制栏 -->
+            <div class="play-controls">
+                <!-- 上一首：竖线+双箭头 -->
+                <button class="side-btn" onclick="prevSong()" title="Previous">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                    </svg>
+                </button>
+
+                <!-- 播放/暂停 -->
+                <button class="play-btn-main" id="main-play" onclick="togglePlayState()">
+                    <!-- 初始显示 Play 图标 -->
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                    </svg>
+                </button>
+
+                <!-- 下一首：双箭头+竖线 -->
+                <button class="side-btn" onclick="nextSong()" title="Next">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6z" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 专业控制面板 -->
+            <div class="fx-container">
+                <div class="fx-block">
+                    <div class="fx-title">3-Band EQ</div>
+                    <div class="eq-grid">
+                        <div class="eq-slider-wrap">
+                            <input type="range" class="vertical-range" min="-12" max="12" value="0"
+                                oninput="setEQ('low', this.value)">
+                            <div class="fx-title" style="font-size:0.6rem">LOW</div>
+                        </div>
+                        <div class="eq-slider-wrap">
+                            <input type="range" class="vertical-range" min="-12" max="12" value="0"
+                                oninput="setEQ('mid', this.value)">
+                            <div class="fx-title" style="font-size:0.6rem">MID</div>
+                        </div>
+                        <div class="eq-slider-wrap">
+                            <input type="range" class="vertical-range" min="-12" max="12" value="0"
+                                oninput="setEQ('high', this.value)">
+                            <div class="fx-title" style="font-size:0.6rem">HI</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fx-block">
+                    <div class="fx-title">Tempo / Pitch</div>
+                    <div class="speed-wrap">
+                        <span style="font-size:0.8rem; color:#888">速度: <span id="speed-display"
+                                style="color:white">1.0x</span></span>
+                        <input type="range" style="width:50%" min="0.5" max="1.5" step="0.05" value="1"
+                            oninput="setSpeed(this.value)">
+                    </div>
+                    <div style="margin-top:15px">
+                        <label class="toggle-label">
+                            <input type="checkbox" checked id="pitch-lock" onchange="setPitchLock(this.checked)">
+                            <span>保持音调 (Pitch Lock)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <audio id="audio-core" crossorigin="anonymous"></audio>
+
+    <script>
+        // ==========================================
+        // JS 逻辑部分
+        // ==========================================
+
+        // SVG 图标常量 (用于 JS 切换)
+        const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+        const ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+
+        const library = {
+            'chill': [
+                'https://github.com/Epilogue24/Echo/tree/main/Demo/chill song.mp3',
+                'https://github.com/Epilogue24/Echo/tree/main/Demo/chill song2.mp3'
+            ],
+            'lofi': [
+                'https://github.com/Epilogue24/Echo/tree/main/Demo/lofi song.mp3',
+                'https://github.com/Epilogue24/Echo/tree/main/Demo/lofi song2.mp3'
+            ],
+            'city pop': [
+                'https://github.com/Epilogue24/Echo/tree/main/Demo/city pop song.mp3',
+                'https://github.com/Epilogue24/Echo/tree/main/Demo/city pop song2.mp3'
+            ]
+        };
+
+        let state = {
+            scene: null,
+            style: null,
+            playlist: [],
+            trackIndex: 0,
+            isPlaying: false,
+            audioCtxInitiated: false
+        };
+
+        /* --- [JS] 界面流转 logic --- */
+        function enterApp() {
+            document.getElementById('hero-section').classList.add('slide-up');
+            setTimeout(() => { document.getElementById('config-section').classList.add('active'); }, 300);
+        }
+
+        function selectScene(sceneVal, colorHex, el) {
+            state.scene = sceneVal;
+            document.querySelectorAll('#scene-cards .option-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            document.documentElement.style.setProperty('--theme-color', colorHex);
+            checkReview();
+        }
+
+        function selectStyle(styleVal, el) {
+            state.style = styleVal;
+            document.querySelectorAll('#style-cards .option-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            checkReview();
+        }
+
+        function checkReview() {
+            const btn = document.getElementById('start-generation-btn');
+            if (state.scene && state.style) btn.classList.add('visible');
+        }
+
+        function generateAndPlay() {
+            if (!state.scene || !state.style) return;
+            state.playlist = library[state.style] || library['chill'];
+            document.getElementById('config-section').classList.add('slide-away');
+            setTimeout(() => {
+                document.getElementById('player-interface').classList.add('active');
+                initAudioEngine();
+                loadTrack(0);
+            }, 600);
+        }
+
+        /* --- [JS] Audio 核心 (含图标切换修复) --- */
+        const audioEl = document.getElementById('audio-core');
+        let audioCtx, source, gainNode, analyser;
+        let eqLow, eqMid, eqHigh;
+
+        function initAudioEngine() {
+            if (state.audioCtxInitiated) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            source = audioCtx.createMediaElementSource(audioEl);
+
+            eqLow = audioCtx.createBiquadFilter(); eqLow.type = "lowshelf"; eqLow.frequency.value = 250;
+            eqMid = audioCtx.createBiquadFilter(); eqMid.type = "peaking"; eqMid.frequency.value = 1000; eqMid.Q.value = 1;
+            eqHigh = audioCtx.createBiquadFilter(); eqHigh.type = "highshelf"; eqHigh.frequency.value = 4000;
+
+            analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
+            gainNode = audioCtx.createGain();
+
+            source.connect(eqLow); eqLow.connect(eqMid); eqMid.connect(eqHigh);
+            eqHigh.connect(analyser); analyser.connect(gainNode); gainNode.connect(audioCtx.destination);
+
+            state.audioCtxInitiated = true;
+            visualize();
+        }
+
+        function loadTrack(index) {
+            state.trackIndex = index;
+            audioEl.src = state.playlist[index];
+            audioEl.load();
+            document.getElementById('song-title').innerText = `AI Session: ${state.style.toUpperCase()} - Track 0${index + 1}`;
+            playAudio();
+        }
+
+        function playAudio() {
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            audioEl.play().then(() => {
+                updatePlayBtn(true);
+            }).catch(e => {
+                console.warn("Auto-play prevented", e);
+                updatePlayBtn(false);
+            });
+        }
+
+        function togglePlayState() {
+            if (audioEl.paused) {
+                playAudio();
+            } else {
+                audioEl.pause();
+                updatePlayBtn(false);
+            }
+        }
+
+        /* 更新播放按钮图标和状态 */
+        function updatePlayBtn(playing) {
+            state.isPlaying = playing;
+            const btn = document.getElementById('main-play');
+            if (playing) {
+                btn.classList.add('is-playing');
+                btn.innerHTML = ICON_PAUSE;
+            } else {
+                btn.classList.remove('is-playing');
+                btn.innerHTML = ICON_PLAY;
+            }
+        }
+
+        function nextSong() {
+            let next = (state.trackIndex + 1) % state.playlist.length;
+            loadTrack(next);
+        }
+
+        function prevSong() {
+            let prev = (state.trackIndex - 1 + state.playlist.length) % state.playlist.length;
+            loadTrack(prev);
+        }
+
+        audioEl.addEventListener('ended', nextSong);
+
+        /* --- [JS] DSP & Visualizer --- */
+        function setEQ(type, val) {
+            if (!audioCtx) return;
+            if (type === 'low') eqLow.gain.value = val;
+            if (type === 'mid') eqMid.gain.value = val;
+            if (type === 'high') eqHigh.gain.value = val;
+        }
+
+        function setSpeed(val) {
+            audioEl.playbackRate = parseFloat(val);
+            document.getElementById('speed-display').innerText = parseFloat(val).toFixed(1) + "x";
+        }
+
+        function setPitchLock(isLocked) {
+            if (audioEl.preservesPitch !== undefined) audioEl.preservesPitch = isLocked;
+            else if (audioEl.mozPreservesPitch !== undefined) audioEl.mozPreservesPitch = isLocked;
+            else if (audioEl.webkitPreservesPitch !== undefined) audioEl.webkitPreservesPitch = isLocked;
+        }
+
+        audioEl.addEventListener('timeupdate', () => {
+            if (!isNaN(audioEl.duration)) document.getElementById('seek-bar').value = (audioEl.currentTime / audioEl.duration) * 100;
+            document.getElementById('time-curr').innerText = formatTime(audioEl.currentTime);
+            document.getElementById('time-dur').innerText = formatTime(audioEl.duration || 0);
+        });
+
+        function userSeek(val) { audioEl.currentTime = (val / 100) * audioEl.duration; }
+        function formatTime(s) { const m = Math.floor(s / 60); const sd = Math.floor(s % 60); return `${m}:${sd < 10 ? '0' + sd : sd}`; }
+
+        function visualize() {
+            const circle = document.getElementById('breathing-core');
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            function draw() {
+                requestAnimationFrame(draw);
+                if (!state.isPlaying) return;
+                analyser.getByteFrequencyData(dataArray);
+                let bassSum = 0;
+                for (let i = 0; i < 20; i++) bassSum += dataArray[i];
+                const scale = 1 + (bassSum / 20 / 256) * 0.8;
+                const opacity = 0.3 + (bassSum / 20 / 256) * 0.7;
+                circle.style.transform = `scale(${scale})`;
+                circle.style.opacity = opacity;
+                circle.style.boxShadow = `0 0 ${(bassSum / 20) / 2}px var(--theme-color)`;
+            }
+            draw();
+        }
+    </script>
+</body>
+
+</html>
